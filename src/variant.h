@@ -149,6 +149,7 @@ class VariantMap : public std::map<std::string, const Variant*> {
 public:
   void init();
   template <bool DoCheck> void parse(std::string path);
+  template <bool DoCheck> void parse(std::istream& config);
   void clear_all();
   std::vector<std::string> get_keys();
 

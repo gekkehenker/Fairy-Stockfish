@@ -1050,19 +1050,25 @@ void VariantMap::parse(std::string path) {
         std::cerr << "Unable to open file " << path << std::endl;
         return;
     }
-    std::string variant, variant_template, key, value, input;
-    while (file.peek() != '[' && std::getline(file, input)) {}
+    parse<DoCheck>(file);
+    file.close();
+}
+
+template <bool DoCheck>
+void VariantMap::parse(std::istream& configFile) {
+    std::string variant, variantTemplate, key, value, input;
+    while (configFile.peek() != '[' && std::getline(configFile, input)) {}
 
     std::vector<std::string> varsToErase = {};
-    while (file.get() && std::getline(std::getline(file, variant, ']'), input))
+    while (configFile.get() && std::getline(std::getline(configFile, variant, ']'), input))
     {
         // Extract variant template, if specified
-        if (!std::getline(std::getline(std::stringstream(variant), variant, ':'), variant_template))
-            variant_template = "";
+        if (!std::getline(std::getline(std::stringstream(variant), variant, ':'), variantTemplate))
+            variantTemplate = "";
 
         // Read variant rules
         Config attribs = {};
-        while (file.peek() != '[' && std::getline(file, input))
+        while (configFile.peek() != '[' && std::getline(configFile, input))
         {
             std::stringstream ss(input);
             if (ss.peek() != '#' && std::getline(std::getline(ss, key, '=') >> std::ws, value) && !key.empty())
@@ -1072,13 +1078,13 @@ void VariantMap::parse(std::string path) {
         // Create variant
         if (variants.find(variant) != variants.end())
             std::cerr << "Variant '" << variant << "' already exists." << std::endl;
-        else if (!variant_template.empty() && variants.find(variant_template) == variants.end())
-            std::cerr << "Variant template '" << variant_template << "' does not exist." << std::endl;
+        else if (!variantTemplate.empty() && variants.find(variantTemplate) == variants.end())
+            std::cerr << "Variant template '" << variantTemplate << "' does not exist." << std::endl;
         else
         {
             if (DoCheck)
                 std::cerr << "Parsing variant: " << variant << std::endl;
-            Variant* v = !variant_template.empty() ? VariantParser<DoCheck>(attribs).parse(new Variant(*variants.find(variant_template)->second))
+            Variant* v = !variantTemplate.empty() ? VariantParser<DoCheck>(attribs).parse(new Variant(*variants.find(variantTemplate)->second))
                                                    : VariantParser<DoCheck>(attribs).parse();
             if (v->maxFile <= FILE_MAX && v->maxRank <= RANK_MAX)
             {
@@ -1092,7 +1098,6 @@ void VariantMap::parse(std::string path) {
                 delete v;
         }
     }
-    file.close();
     // Clean up temporary variants
     for (std::string tempVar : varsToErase)
     {
